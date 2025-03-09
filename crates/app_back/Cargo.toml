@@ -1,0 +1,17 @@
+[package]
+name = "app_back"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+clap = { version = "4.5.31", features = ["derive"] }
+
+tokio = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true, features = ["env-filter"] }
+
+domain = { path = "../domain" }
+primary_adapter_webhook = { path = "../primary_adapter_webhook" }
+primary_adapter_rest = { path = "../primary_adapter_rest" }
+secondary_adapter_persistence_seaorm = { path = "../secondary_adapter_persistence_seaorm" }
+secondary_adapter_notifier_tokio_channel = { path = "../secondary_adapter_notifier_tokio_channel" }
