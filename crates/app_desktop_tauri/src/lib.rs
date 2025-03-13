@@ -1,7 +1,7 @@
 use tauri::{Emitter, Manager, State};
 use tokio::sync::mpsc;
 use tracing::log::info;
-use domain::models::{PersistenceType, PostgresConfiguration};
+use domain::models::{PersistenceType, PostgresConfiguration, PublicEndpoint, WebhookRequest, WebhookRequestPreview};
 use domain::services::{ApiService, ApiServiceInterface, WebhookService};
 use secondary_adapter_notifier_tokio_channel::TokioChannelNotifier;
 use secondary_adapter_persistence_seaorm::SeaPersistence;
@@ -14,15 +14,25 @@ async fn greet(name: String, state: State<'_, AppData>) -> Result<String,()> {
     Ok(format!("{:?}", data2))
 }
 
+#[tauri::command]
+async fn get_endpoints(state: State<'_, AppData>) -> Result<Vec<PublicEndpoint>,()> {
+    Ok(state.service.get_endpoints().await)
+}
+
+#[tauri::command]
+async fn get_requests_by_endpoint_id(endpoint_id: i32, state: State<'_, AppData>) -> Result<Vec<WebhookRequestPreview>,()> {
+    Ok(state.service.get_requests(endpoint_id).await)
+}
+
+#[tauri::command]
+async fn get_request(request_id: i32, state: State<'_, AppData>) -> Result<WebhookRequest,()> {
+    Ok(state.service.get_request_by_id(request_id).await.unwrap().unwrap())
+}
+
 struct AppData {
     pub service: Box<dyn ApiServiceInterface>
 }
 
-// TODO: avoid clone?
-#[derive(serde::Serialize, Clone)]
-struct MyEventPayload {
-    message: String,
-}
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub async fn run() {
     //TODO: Write in file
@@ -61,10 +71,7 @@ pub async fn run() {
 
             tokio::spawn(async move {
                while let Some(msg) = rx.recv().await {
-                   let payload = MyEventPayload {
-                       message: msg,
-                   };
-                   handle.emit("backend-message", payload).unwrap();
+                   handle.emit("backend-message", msg).unwrap();
                }
             });
             app.manage(AppData {
@@ -73,7 +80,7 @@ pub async fn run() {
             Ok(())
         })
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![greet])
+        .invoke_handler(tauri::generate_handler![greet, get_endpoints, get_requests_by_endpoint_id, get_request])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 

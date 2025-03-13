@@ -1,4 +1,4 @@
-use domain::models::{PublicEndpoint, WebhookRequest};
+use domain::models::{PublicEndpoint, WebhookRequest, WebhookRequestPreview};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -48,12 +48,12 @@ impl ReadAllEndpointsResponseDto {
 #[derive(Serialize)]
 pub struct ReadAllRequestsResponseDto {
     metadata: Metadata,
-    requests: Vec<WebhookRequest>,
+    requests: Vec<WebhookRequestPreview>,
 }
 
 //TODO: implement the complete one
 impl ReadAllRequestsResponseDto {
-    pub fn new(requests: Vec<WebhookRequest>) -> Self {
+    pub fn new(requests: Vec<WebhookRequestPreview>) -> Self {
         Self {
             metadata: Metadata {
                 count: requests.len(),

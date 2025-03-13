@@ -1,5 +1,5 @@
 use crate::entity;
-use domain::models::{HttpMethod, PersistenceError, PublicEndpoint, WebhookRequest};
+use domain::models::{HttpMethod, PersistenceError, PublicEndpoint, WebhookRequest, WebhookRequestPreview};
 use sea_orm::DbErr;
 
 //TODO: or wrap struct?
@@ -27,6 +27,17 @@ impl From<entity::public_request::Model> for WebhookRequest {
             timestamp: value.timestamp.and_utc(),
             host: value.host, //TODO
             http_method: value.http_method.into(),
+        }
+    }
+}
+
+impl From<entity::public_request::Model> for WebhookRequestPreview {
+    fn from(value: entity::public_request::Model) -> Self {
+        WebhookRequestPreview {
+            timestamp: value.timestamp.and_utc(),
+            host: value.host, //TODO
+            http_method: value.http_method.into(),
+            id: value.id,
         }
     }
 }

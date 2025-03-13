@@ -15,6 +15,7 @@ impl MigrationTrait for Migration {
                     .table(PublicRequest::Table)
                     .if_not_exists()
                     .col(
+                        //TODO: uuid PK?
                         ColumnDef::new(PublicRequest::Id)
                             .integer()
                             .not_null()

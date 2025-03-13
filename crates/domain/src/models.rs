@@ -1,6 +1,15 @@
 use chrono::{DateTime, Utc};
 use serde::Serialize;
+use std::fmt::{Display, Formatter};
 use uuid::Uuid;
+
+#[derive(Debug, Clone, Serialize)]
+pub struct NotifyMessage {
+    pub method: String,
+    pub date: String,
+    pub host: String,
+    pub id: i32,
+}
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "UPPERCASE")]
@@ -16,6 +25,22 @@ pub enum HttpMethod {
     Trace,
 }
 
+impl Display for HttpMethod {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            HttpMethod::Get => write!(f, "GET"),
+            HttpMethod::Post => write!(f, "POST"),
+            HttpMethod::Put => write!(f, "PUT"),
+            HttpMethod::Delete => write!(f, "DELETE"),
+            HttpMethod::Patch => write!(f, "PATCH"),
+            HttpMethod::Head => write!(f, "HEAD"),
+            HttpMethod::Connect => write!(f, "CONNECT"),
+            HttpMethod::Options => write!(f, "OPTIONS"),
+            HttpMethod::Trace => write!(f, "TRACE"),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct WebhookRequest {
     pub headers: serde_json::Value,
@@ -27,7 +52,14 @@ pub struct WebhookRequest {
 }
 
 #[derive(Debug, Clone, Serialize)]
-#[derive(PartialEq)]
+pub struct WebhookRequestPreview {
+    pub timestamp: DateTime<Utc>,
+    pub host: String,
+    pub http_method: HttpMethod,
+    pub id: i32,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
 pub struct PublicEndpoint {
     pub id: i32,
     pub uri: Uuid,
@@ -38,8 +70,6 @@ pub enum PersistenceError {
     ResourceAlreadyExists,
     UnhandledError,
 }
-
-
 
 pub struct PostgresConfiguration {
     pub user: String,

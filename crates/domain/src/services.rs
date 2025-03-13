@@ -1,4 +1,4 @@
-use crate::models::{PersistenceError, PublicEndpoint, WebhookRequest};
+use crate::models::{NotifyMessage, PersistenceError, PublicEndpoint, WebhookRequest, WebhookRequestPreview};
 use crate::ports::{NotifierPort, PersistencePort};
 use dyn_clone::DynClone;
 use uuid::Uuid;
@@ -41,9 +41,17 @@ where
     N: NotifierPort + 'static + Clone,
 {
     async fn process_request(&mut self, endpoint: PublicEndpoint, request: WebhookRequest) {
-        let msg = format!("Processed request: {:?}", request);
-        self.persistence.save_request(endpoint, request).await;
-        self.notifier.notify(msg.as_str()).await;
+        let method= request.http_method.to_string();
+        let date= request.timestamp.to_string();
+        let host= request.host.clone();
+        let id = self.persistence.save_request(endpoint, request).await.unwrap();
+        let msg = NotifyMessage {
+            method,
+            date,
+            host,
+            id,
+        };
+        self.notifier.notify(msg).await;
     }
 
     async fn get_endpoint(&self, url: Uuid) -> Result<Option<PublicEndpoint>, PersistenceError> {
@@ -59,7 +67,8 @@ pub trait ApiServiceInterface: Send + Sync + DynClone {
     async fn create_random_endpoint(&self) -> Result<PublicEndpoint, PersistenceError>;
     async fn get_endpoints(&self) -> Vec<PublicEndpoint>;
     async fn get_endpoint(&self, url: Uuid) -> Result<Option<PublicEndpoint>, PersistenceError>;
-    async fn get_requests(&self, endpoint_id: i32) -> Vec<WebhookRequest>;
+    async fn get_requests(&self, endpoint_id: i32) -> Vec<WebhookRequestPreview>;
+    async fn get_request_by_id(&self, request_id: i32) -> Result<Option<WebhookRequest>, PersistenceError>;
 }
 
 #[derive(Clone)]
@@ -109,8 +118,12 @@ where
         self.persistence.get_endpoint(url).await
     }
 
-    async fn get_requests(&self, endpoint_id: i32) -> Vec<WebhookRequest> {
-        self.persistence.get_requests_by_id(endpoint_id).await
+    async fn get_requests(&self, endpoint_id: i32) -> Vec<WebhookRequestPreview> {
+        self.persistence.get_requests_by_endpoint(endpoint_id).await
+    }
+
+    async fn get_request_by_id(&self, request_id: i32) -> Result<Option<WebhookRequest>, PersistenceError> {
+       self.persistence.get_request_by_id(request_id).await 
     }
 }
 

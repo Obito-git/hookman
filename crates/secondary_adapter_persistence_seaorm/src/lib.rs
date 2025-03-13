@@ -1,15 +1,14 @@
 use crate::mapper::map_db_err;
 use async_trait::async_trait;
-use domain::models::{PersistenceError, PersistenceType, PublicEndpoint, WebhookRequest};
+use domain::models::{
+    PersistenceError, PersistenceType, PublicEndpoint, WebhookRequest, WebhookRequestPreview,
+};
 use domain::ports::PersistencePort;
 use log::info;
 use migration::{Migrator, MigratorTrait};
 use sea_orm::prelude::Uuid;
 use sea_orm::sqlx::Error;
-use sea_orm::{
-    ActiveValue, ColumnTrait, ConnectOptions, Database, DatabaseConnection, DbErr, EntityTrait,
-    QueryFilter, RuntimeErr,
-};
+use sea_orm::{ActiveValue, ColumnTrait, ConnectOptions, Database, DatabaseConnection, DbErr, EntityTrait, QueryFilter, QueryOrder, RuntimeErr};
 
 mod entity;
 mod mapper;
@@ -46,12 +45,12 @@ impl SeaPersistence {
 #[async_trait]
 impl PersistencePort for SeaPersistence {
     async fn get_endpoint(&self, url: Uuid) -> Result<Option<PublicEndpoint>, PersistenceError> {
-        entity::public_endpoint::Entity::find()
+        let mod_opt = entity::public_endpoint::Entity::find()
             .filter(entity::public_endpoint::Column::Url.eq(url))
             .one(&self.pool)
             .await
-            .map(|model_opt| model_opt.map(|m| m.into()))
-            .map_err(|e| map_db_err(e))
+            .map_err(|e| map_db_err(e))?;
+        Ok(mod_opt.map(Into::into))
     }
 
     async fn save_endpoint(&self, url: Uuid) -> Result<PublicEndpoint, PersistenceError> {
@@ -83,11 +82,15 @@ impl PersistencePort for SeaPersistence {
             .await
             .unwrap()
             .into_iter()
-            .map(|model| model.into())
+            .map(Into::into)
             .collect()
     }
 
-    async fn save_request(&self, endpoint: PublicEndpoint, request: WebhookRequest) {
+    async fn save_request(
+        &self,
+        endpoint: PublicEndpoint,
+        request: WebhookRequest,
+    ) -> Result<i32, PersistenceError> {
         let req = entity::public_request::ActiveModel {
             id: Default::default(),
             endpoint_id: ActiveValue::Set(endpoint.id),
@@ -99,20 +102,31 @@ impl PersistencePort for SeaPersistence {
             query_params: ActiveValue::Set(request.query_params),
         };
         entity::public_request::Entity::insert(req)
-            .exec(&self.pool)
+            .exec_with_returning(&self.pool)
             .await
-            .unwrap();
+            .map(|n| n.id)
+            .map_err(|e| map_db_err(e))
     }
 
-    async fn get_requests_by_id(&self, endpoint_id: i32) -> Vec<WebhookRequest> {
+    async fn get_requests_by_endpoint(&self, endpoint_id: i32) -> Vec<WebhookRequestPreview> {
         entity::public_request::Entity::find()
             .filter(entity::public_request::Column::EndpointId.eq(endpoint_id))
+            .order_by_desc(entity::public_request::Column::Timestamp)
             .all(&self.pool)
             .await
             .unwrap()
             .into_iter()
-            .map(|model| model.into())
+            .map(Into::into)
             .collect()
+    }
+
+    async fn get_request_by_id(&self, id: i32) -> Result<Option<WebhookRequest>, PersistenceError> {
+        let model_opt = entity::public_request::Entity::find()
+            .filter(entity::public_request::Column::Id.eq(id))
+            .one(&self.pool)
+            .await
+            .map_err(map_db_err)?;
+        Ok(model_opt.map(Into::into))
     }
 
     async fn get_requests(&self) -> Vec<WebhookRequest> {
