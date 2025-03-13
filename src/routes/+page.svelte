@@ -11,12 +11,12 @@
 
 
     let endpoints: Endpoint[] = $state([]);
-    let selectedEndpoint: Endpoint | undefined = $state(undefined);
+    let selectedEndpointId: string | undefined = $state(undefined);
     let selectedRequestId: string | undefined = $state(undefined);
     let requests: WebhookRequestPreview[] = $state([]);
 
     $effect(() => {
-        if (selectedEndpoint) {
+        if (selectedEndpointId) {
             (async () => {
                 requests = await getRequests();
             })();
@@ -24,9 +24,8 @@
     });
 
     async function getRequests() {
-        if (selectedEndpoint) {
-            console.log("Fetching data for endpoint:", selectedEndpoint);
-            return invoke<WebhookRequestPreview[]>('get_requests_by_endpoint_id', {endpointId: selectedEndpoint.id})
+        if (selectedEndpointId) {
+            return invoke<WebhookRequestPreview[]>('get_requests_by_endpoint_id', {endpointId: selectedEndpointId})
                 .catch((error) => {
                     console.error("Error fetching data:", error);
                     return [];
@@ -39,7 +38,7 @@
 
     onMount(async () => {
         endpoints = await invoke("get_endpoints", {endpoints});
-        selectedEndpoint = endpoints[0];
+        selectedEndpointId = endpoints[0].id; // TODO: Handle empty
         unlisten = await listen<TauriEvent>('backend-message', (event) => {
             const newRequest: WebhookRequestPreview = {
                 id: event.payload.id,
@@ -59,22 +58,32 @@
 
     function handleRequestClick(id: string) {
         selectedRequestId = id;
-        console.log("Request clicked:", selectedRequestId);
+    }
+
+    function handleEndpointClick(id: string) {
+        selectedEndpointId = id;
+        requests = [];
+        selectedRequestId = undefined;
     }
 </script>
 
-<main class="container mx-auto flex min-h-screen">
-    <aside class="w-1/4 p-4 border-r border-gray-300">
-        <RequestSideBar onSelectedRequestChange={handleRequestClick} {requests} {selectedRequestId}/>
-    </aside>
+<main class="container mx-auto min-h-screen flex flex-col">
+    <!-- Top bar -->
+    <div class="mb-4">
+        <EndpointTopBar onSelectedEndpointChange={handleEndpointClick} {endpoints} {selectedEndpointId}/>
+    </div>
 
-    <section class="w-3/4 p-4">
-        <div>
-            <EndpointTopBar {endpoints}/>
-        </div>
-        <div class="border-t-4">
-            <RequestDetails {selectedRequestId}/>
-        </div>
-    </section>
+    <!-- Split content: sidebar and details -->
+    <div class="flex flex-1">
+        <aside class="w-1/4 p-4 border-r border-gray-300">
+            <RequestSideBar onSelectedRequestChange={handleRequestClick} {requests} {selectedRequestId}/>
+        </aside>
 
+        <section class="w-3/4 p-4">
+            <div class="border-t-4">
+                <RequestDetails {selectedRequestId}/>
+            </div>
+        </section>
+    </div>
 </main>
+

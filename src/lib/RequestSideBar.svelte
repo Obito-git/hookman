@@ -3,7 +3,6 @@
 </script>
 
 <main>
-    <h1>Tauri Event Listener</h1>
     {#each requests as request}
         <button
                 class="border-2 p-2 m-1"

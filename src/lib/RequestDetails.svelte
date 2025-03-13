@@ -20,6 +20,8 @@
                     }
                 })();
             }
+        } else {
+            request = undefined;
         }
     });
 
@@ -37,8 +39,6 @@
 </script>
 
 <main>
-    {selectedRequestId}
-
     {#if request}
         <div>Request ID: {selectedRequestId}</div>
         <div>Timestamp: {request.timestamp}</div>

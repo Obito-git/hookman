@@ -119,6 +119,17 @@ Run desktop app
 RUST_LOG=INFO; cargo run --bin hookman --no-default-features
 ```
 
+## Frontend
+### Icons framework
+https://github.com/unplugin/unplugin-icons
+https://icones.js.org/
+https://icones.js.org/collection/mingcute
+
+### Modals
+https://flowbite-svelte.com/docs/components/modal
+example:
+https://github.com/PurelyAnecdotal/gradevue/tree/dc485a5a89070ad17de79e9a8c62bf162e71d81e
+
 ## Sources for future
 
 - How to embed svelte in rust binary https://fdeantoni.medium.com/single-rust-binary-with-vite-svelte-66944f9ac561
