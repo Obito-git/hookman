@@ -11,7 +11,7 @@ dyn_clone::clone_trait_object!(ApiServiceInterface);
 #[async_trait::async_trait]
 pub trait WebhookServiceInterface: Send + Sync + DynClone {
     async fn process_request(&mut self, endpoint: EndpointReadDto, request: WebhookRequest);
-    async fn get_endpoint(&self, url: Uuid) -> Result<Option<EndpointReadDto>, PersistenceError>;
+    async fn get_endpoint(&self, url: String) -> Result<Option<EndpointReadDto>, PersistenceError>;
 }
 
 #[derive(Clone)]
@@ -61,7 +61,7 @@ where
         self.notifier.notify(msg).await;
     }
 
-    async fn get_endpoint(&self, url: Uuid) -> Result<Option<EndpointReadDto>, PersistenceError> {
+    async fn get_endpoint(&self, url: String) -> Result<Option<EndpointReadDto>, PersistenceError> {
         self.persistence.get_endpoint(url).await
     }
 }
@@ -73,7 +73,7 @@ pub trait ApiServiceInterface: Send + Sync + DynClone {
     async fn create_endpoint(&self, url: String) -> Result<EndpointReadDto, PersistenceError>;
     async fn create_random_endpoint(&self) -> Result<EndpointReadDto, PersistenceError>;
     async fn get_endpoints(&self) -> Vec<EndpointReadDto>;
-    async fn get_endpoint(&self, url: Uuid) -> Result<Option<EndpointReadDto>, PersistenceError>;
+    async fn get_endpoint(&self, url: String) -> Result<Option<EndpointReadDto>, PersistenceError>;
     async fn get_requests(&self, endpoint_id: i32) -> Vec<WebhookRequestPreview>;
     async fn get_request_by_id(
         &self,
@@ -124,7 +124,7 @@ where
         self.persistence.get_endpoints().await
     }
 
-    async fn get_endpoint(&self, url: Uuid) -> Result<Option<EndpointReadDto>, PersistenceError> {
+    async fn get_endpoint(&self, url: String) -> Result<Option<EndpointReadDto>, PersistenceError> {
         self.persistence.get_endpoint(url).await
     }
 

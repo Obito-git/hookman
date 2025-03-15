@@ -3,7 +3,6 @@ use async_trait::async_trait;
 use domain::ports::PersistencePort;
 use log::info;
 use migration::{Migrator, MigratorTrait};
-use sea_orm::prelude::Uuid;
 use sea_orm::sqlx::Error;
 use sea_orm::{ActiveValue, ColumnTrait, ConnectOptions, Database, DatabaseConnection, DbErr, EntityTrait, QueryFilter, QueryOrder, RuntimeErr};
 use domain::model::endpoint::{EndpointReadDto};
@@ -44,7 +43,7 @@ impl SeaPersistence {
 
 #[async_trait]
 impl PersistencePort for SeaPersistence {
-    async fn get_endpoint(&self, url: Uuid) -> Result<Option<EndpointReadDto>, PersistenceError> {
+    async fn get_endpoint(&self, url: String) -> Result<Option<EndpointReadDto>, PersistenceError> {
         let mod_opt = entity::public_endpoint::Entity::find()
             .filter(entity::public_endpoint::Column::Url.eq(url))
             .one(&self.pool)

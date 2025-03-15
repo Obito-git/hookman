@@ -4,14 +4,13 @@ use tracing::log::info;
 use domain::services::{ApiService, ApiServiceInterface, WebhookService};
 use secondary_adapter_notifier_tokio_channel::TokioChannelNotifier;
 use secondary_adapter_persistence_seaorm::SeaPersistence;
-use uuid::Uuid;
 use domain::model::endpoint::EndpointReadDto;
 use domain::model::persistence::{PersistenceType, PostgresConfiguration};
 use domain::model::webhook::{WebhookRequest, WebhookRequestPreview};
 
 #[tauri::command]
 async fn greet(name: String, state: State<'_, AppData>) -> Result<String,()> {
-    let data = state.service.get_endpoint(Uuid::parse_str(&name).unwrap()).await.unwrap().unwrap();
+    let data = state.service.get_endpoint(name).await.unwrap().unwrap();
     let data2 = state.service.get_requests(data.id).await;
     Ok(format!("{:?}", data2))
 }

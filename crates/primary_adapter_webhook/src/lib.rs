@@ -11,7 +11,6 @@ use actix_web::{App, Error, HttpMessage, HttpServer};
 use domain::services::WebhookServiceInterface;
 use std::thread;
 use tokio::sync::Mutex;
-use uuid::Uuid;
 
 mod error_response;
 mod macros;
@@ -28,8 +27,11 @@ async fn check_endpoint_middleware(
     let app_data = option_or_webhook_err!(req.app_data::<Data<AppState>>());
     let endpoint = {
         let lock = app_data.service.lock().await;
+        /*
         let path =
             Uuid::parse_str(req.path().trim_matches('/')).map_err(|_| WebhookError::NotFound)?;
+         */
+        let path = req.path().trim_matches('/').to_string();
         lock.get_endpoint(path)
             .await
             .map_err(|_| WebhookError::NotFound)?

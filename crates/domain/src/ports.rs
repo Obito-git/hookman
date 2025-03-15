@@ -3,11 +3,10 @@ use crate::model::endpoint::{EndpointCreateDto, EndpointReadDto};
 use crate::model::persistence::PersistenceError;
 use crate::model::webhook::{WebhookRequest, WebhookRequestPreview};
 use async_trait::async_trait;
-use uuid::Uuid;
 
 #[async_trait]
 pub trait PersistencePort: Send + Sync + Clone {
-    async fn get_endpoint(&self, url: Uuid) -> Result<Option<EndpointReadDto>, PersistenceError>;
+    async fn get_endpoint(&self, url: String) -> Result<Option<EndpointReadDto>, PersistenceError>;
     async fn save_endpoint(&self, url: String) -> Result<EndpointReadDto, PersistenceError>;
     async fn get_endpoints(&self) -> Vec<EndpointReadDto>;
     async fn save_request(

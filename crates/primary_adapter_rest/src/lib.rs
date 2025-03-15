@@ -15,7 +15,6 @@ use domain::services::ApiServiceInterface;
 use log::error;
 use std::thread;
 use tokio::sync::Mutex;
-use uuid::Uuid;
 
 #[derive(Debug, Display, Error)]
 pub enum ApiError {
@@ -83,10 +82,10 @@ async fn create_endpoint(
 
 #[get("/api/v1/{endpoint_url}/requests")]
 async fn read_requests(data: Data<AppState>, name: web::Path<String>) -> Result<impl Responder> {
-    let endpoint_uuid = Uuid::parse_str(&name.into_inner()).map_err(|_| ApiError::NotFound)?;
+    //let endpoint_uuid = Uuid::parse_str(&name.into_inner()).map_err(|_| ApiError::NotFound)?;
     let service = data.service.lock().await;
     let endpoint_id = service
-        .get_endpoint(endpoint_uuid)
+        .get_endpoint(name.into_inner())
         .await
         .map_err(|_| ApiError::InternalServerError)?
         .ok_or(ApiError::NotFound)?

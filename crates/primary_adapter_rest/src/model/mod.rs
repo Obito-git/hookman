@@ -1,6 +1,5 @@
 use domain::model::webhook::WebhookRequestPreview;
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 use domain::model::endpoint::EndpointReadDto;
 
 #[derive(Deserialize)]
