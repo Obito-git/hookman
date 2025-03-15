@@ -8,14 +8,22 @@ pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
     #[sea_orm(unique)]
-    pub url: Uuid,
+    pub url: String,
     pub created_at: DateTimeWithTimeZone,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
+    #[sea_orm(has_many = "super::endpoint_action_settings::Entity")]
+    EndpointActionSettings,
     #[sea_orm(has_many = "super::public_request::Entity")]
     PublicRequest,
+}
+
+impl Related<super::endpoint_action_settings::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::EndpointActionSettings.def()
+    }
 }
 
 impl Related<super::public_request::Entity> for Entity {

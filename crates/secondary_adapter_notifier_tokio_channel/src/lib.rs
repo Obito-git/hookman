@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use tokio::sync::mpsc::Sender;
-use domain::models::NotifyMessage;
+use domain::model::NotifyMessage;
 use domain::ports::NotifierPort;
 
 #[derive(Clone)]

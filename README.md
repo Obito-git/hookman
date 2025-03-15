@@ -58,8 +58,13 @@ Migration is automatic on startup, but it can be done manually.
 
 #### SQLite file
 
+##### Create database file
 ```shell
-export DATABASE_URL="sqlite:hookman.db"
+sqlx database create
+```
+
+```shell
+export DATABASE_URL="sqlite:hookman.sqlite"
 cargo run --bin migration
 ```
 

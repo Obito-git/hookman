@@ -1,13 +1,20 @@
-use crate::models::{NotifyMessage, PersistenceError, PublicEndpoint, WebhookRequest, WebhookRequestPreview};
+use crate::model::NotifyMessage;
+use crate::model::endpoint::{EndpointCreateDto, EndpointReadDto};
+use crate::model::persistence::PersistenceError;
+use crate::model::webhook::{WebhookRequest, WebhookRequestPreview};
 use async_trait::async_trait;
 use uuid::Uuid;
 
 #[async_trait]
 pub trait PersistencePort: Send + Sync + Clone {
-    async fn get_endpoint(&self, url: Uuid) -> Result<Option<PublicEndpoint>, PersistenceError>;
-    async fn save_endpoint(&self, url: Uuid) -> Result<PublicEndpoint, PersistenceError>;
-    async fn get_endpoints(&self) -> Vec<PublicEndpoint>;
-    async fn save_request(&self, endpoint: PublicEndpoint, request: WebhookRequest) -> Result<i32, PersistenceError>;
+    async fn get_endpoint(&self, url: Uuid) -> Result<Option<EndpointReadDto>, PersistenceError>;
+    async fn save_endpoint(&self, url: String) -> Result<EndpointReadDto, PersistenceError>;
+    async fn get_endpoints(&self) -> Vec<EndpointReadDto>;
+    async fn save_request(
+        &self,
+        endpoint: EndpointReadDto,
+        request: WebhookRequest,
+    ) -> Result<i32, PersistenceError>;
     async fn get_requests_by_endpoint(&self, id: i32) -> Vec<WebhookRequestPreview>;
     async fn get_request_by_id(&self, id: i32) -> Result<Option<WebhookRequest>, PersistenceError>;
     async fn get_requests(&self) -> Vec<WebhookRequest>;
@@ -19,6 +26,6 @@ pub trait NotifierPort: Send + Sync + Clone {
 }
 
 pub trait CrudPort {
-    fn create_endpoint(&mut self, endpoint: PublicEndpoint);
-    fn list_endpoints(&self) -> Vec<PublicEndpoint>;
+    fn create_endpoint(&mut self, endpoint: EndpointCreateDto);
+    fn list_endpoints(&self) -> Vec<EndpointReadDto>;
 }

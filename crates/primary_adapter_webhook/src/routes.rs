@@ -6,10 +6,11 @@ use actix_web::{
     post, put, trace,
 };
 use chrono::Utc;
-use domain::models::{HttpMethod, PublicEndpoint, WebhookRequest};
+use domain::model::webhook::{HttpMethod, WebhookRequest};
 use itertools::Itertools;
 use serde_json::json;
 use tracing::debug;
+use domain::model::endpoint::EndpointReadDto;
 
 /// can have duplicate header name, saves all
 /// peer addr can be None only in unit tests
@@ -66,7 +67,7 @@ async fn handle_webhook(
     body: String,
     http_method: HttpMethod,
 ) -> Result<impl Responder, WebhookError> {
-    let endpoint = option_or_webhook_err!(http_request.extensions_mut().remove::<PublicEndpoint>());
+    let endpoint = option_or_webhook_err!(http_request.extensions_mut().remove::<EndpointReadDto>());
     let mut lock = data.service.lock().await;
     lock.process_request(
         endpoint,

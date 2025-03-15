@@ -2,6 +2,7 @@
 
 pub mod prelude;
 
+pub mod endpoint_action_settings;
 pub mod public_endpoint;
 pub mod public_request;
 pub mod sea_orm_active_enums;

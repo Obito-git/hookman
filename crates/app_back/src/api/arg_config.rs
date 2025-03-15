@@ -1,6 +1,6 @@
 use clap::{Parser, Subcommand};
-use domain::models::{PersistenceType, PostgresConfiguration, SQLiteConfiguration};
 use std::fmt::{Display, Formatter};
+use domain::model::persistence::{PersistenceType, PostgresConfiguration, SQLiteConfiguration};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about)]

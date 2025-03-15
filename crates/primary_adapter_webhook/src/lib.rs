@@ -45,10 +45,10 @@ async fn check_endpoint_middleware(
 }
 
 pub fn start_server(
-    uri: &str,
+    url: &str,
     service: Box<dyn WebhookServiceInterface>,
 ) -> thread::JoinHandle<()> {
-    let addr = uri.to_string();
+    let addr = url.to_string();
     thread::spawn(move || {
         let sys = actix_web::rt::System::new();
         sys.block_on(async move {

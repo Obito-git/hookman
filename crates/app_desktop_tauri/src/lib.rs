@@ -1,11 +1,13 @@
 use tauri::{Emitter, Manager, State};
 use tokio::sync::mpsc;
 use tracing::log::info;
-use domain::models::{PersistenceType, PostgresConfiguration, PublicEndpoint, WebhookRequest, WebhookRequestPreview};
 use domain::services::{ApiService, ApiServiceInterface, WebhookService};
 use secondary_adapter_notifier_tokio_channel::TokioChannelNotifier;
 use secondary_adapter_persistence_seaorm::SeaPersistence;
 use uuid::Uuid;
+use domain::model::endpoint::EndpointReadDto;
+use domain::model::persistence::{PersistenceType, PostgresConfiguration};
+use domain::model::webhook::{WebhookRequest, WebhookRequestPreview};
 
 #[tauri::command]
 async fn greet(name: String, state: State<'_, AppData>) -> Result<String,()> {
@@ -15,7 +17,7 @@ async fn greet(name: String, state: State<'_, AppData>) -> Result<String,()> {
 }
 
 #[tauri::command]
-async fn get_endpoints(state: State<'_, AppData>) -> Result<Vec<PublicEndpoint>,()> {
+async fn get_endpoints(state: State<'_, AppData>) -> Result<Vec<EndpointReadDto>,()> {
     Ok(state.service.get_endpoints().await)
 }
 
@@ -28,6 +30,14 @@ async fn get_requests_by_endpoint_id(endpoint_id: i32, state: State<'_, AppData>
 async fn get_request(request_id: i32, state: State<'_, AppData>) -> Result<WebhookRequest,()> {
     Ok(state.service.get_request_by_id(request_id).await.unwrap().unwrap())
 }
+
+/*
+#[tauri::command]
+async fn create_endpoint(endpoint: EndpointReadDto, state: State<'_, AppData>) -> Result<WebhookRequest,()> {
+    state.service.create_endpoint()
+    Ok(state.service.get_request_by_id(request_id).await.unwrap().unwrap())
+}
+ */
 
 struct AppData {
     pub service: Box<dyn ApiServiceInterface>

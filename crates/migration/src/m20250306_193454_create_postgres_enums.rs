@@ -1,3 +1,4 @@
+use crate::endpoint::EndpointAction;
 use crate::extension::postgres::Type;
 use crate::request::HttpMethod;
 use crate::sea_orm::DbBackend;
@@ -25,6 +26,14 @@ impl MigrationTrait for Migration {
                             HttpMethod::Options,
                             HttpMethod::Trace,
                         ])
+                        .to_owned(),
+                )
+                .await?;
+            manager
+                .create_type(
+                    Type::create()
+                        .as_enum(EndpointAction::Enum)
+                        .values([EndpointAction::CustomResponse])
                         .to_owned(),
                 )
                 .await?;

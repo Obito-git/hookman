@@ -25,7 +25,7 @@
 
     async function getRequests() {
         if (selectedEndpointId) {
-            return invoke<WebhookRequestPreview[]>('get_requests_by_endpoint_id', {endpointId: selectedEndpointId})
+            return invoke<WebhookRequestPreview[]>('get_requests_by_endpoint_id', {selectedEndpointId})
                 .catch((error) => {
                     console.error("Error fetching data:", error);
                     return [];
@@ -61,9 +61,11 @@
     }
 
     function handleEndpointClick(id: string) {
-        selectedEndpointId = id;
-        requests = [];
-        selectedRequestId = undefined;
+        if (selectedEndpointId !== id) {
+            selectedEndpointId = id;
+            requests = [];
+            selectedRequestId = undefined;
+        }
     }
 </script>
 

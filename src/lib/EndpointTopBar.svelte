@@ -1,13 +1,21 @@
 <script lang="ts">
     import GearIcon from 'virtual:icons/mingcute/settings-7-line';
-    import {Button, Modal} from 'flowbite-svelte';
-    import MyModal from "$lib/MyModal.svelte";
+    import AddIcon from 'virtual:icons/mingcute/classify-add-2-line';
+    import EndpointSettingsModal from "$lib/EndpointSettingsModal.svelte";
+    import EndpointAddModal from "$lib/EndpointAddModal.svelte";
 
-    let { endpoints, onSelectedEndpointChange, selectedEndpointId, onGearIconClick } = $props();
-    let defaultModal = false;
+    let {endpoints, onSelectedEndpointChange, selectedEndpointId} = $props();
+    let showEndpointSettingsModal = $state(false)
+    let showAddEndpointModal = $state(false)
 </script>
 
 <main class="flex flex-wrap gap-2">
+    <button
+            onclick={() => showAddEndpointModal = true}
+            class="p-2 hover:bg-gray-200 rounded-full"
+    >
+        <AddIcon class="w-8 h-8"/>
+    </button>
     {#each endpoints as endpoint}
         <div
                 role="button"
@@ -18,16 +26,17 @@
                 onclick={() => onSelectedEndpointChange(endpoint.id)}
                 onkeydown={() => {}}
         >
-            <span class="text-base font-medium">{endpoint.uri}</span>
+            <span class="text-base font-medium">{endpoint.url}</span>
             <button
-                    type="button"
-                    onclick={() => defaultModal = true}
+                    onclick={() => showEndpointSettingsModal = true}
                     class="p-2 hover:bg-gray-200 rounded-full"
             >
-                <GearIcon class="w-5 h-5" />
+                <GearIcon class="w-5 h-5"/>
             </button>
         </div>
     {/each}
-    <MyModal/>
+
+    <EndpointAddModal bind:showAddEndpointModal/>
+    <EndpointSettingsModal bind:showEndpointSettingsModal selectedEndpointId={selectedEndpointId}/>
 </main>
 

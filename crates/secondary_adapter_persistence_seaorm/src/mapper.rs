@@ -1,6 +1,8 @@
 use crate::entity;
-use domain::models::{HttpMethod, PersistenceError, PublicEndpoint, WebhookRequest, WebhookRequestPreview};
 use sea_orm::DbErr;
+use domain::model::endpoint::EndpointReadDto;
+use domain::model::persistence::PersistenceError;
+use domain::model::webhook::{HttpMethod, WebhookRequest, WebhookRequestPreview};
 
 //TODO: or wrap struct?
 pub(crate) fn map_db_err(db_err: DbErr) -> PersistenceError {
@@ -9,11 +11,12 @@ pub(crate) fn map_db_err(db_err: DbErr) -> PersistenceError {
     }
 }
 
-impl From<entity::public_endpoint::Model> for PublicEndpoint {
+impl From<entity::public_endpoint::Model> for EndpointReadDto {
     fn from(value: entity::public_endpoint::Model) -> Self {
-        PublicEndpoint {
+        EndpointReadDto {
             id: value.id,
-            uri: value.url,
+            url: value.url,
+            action: None, //TODO
         }
     }
 }

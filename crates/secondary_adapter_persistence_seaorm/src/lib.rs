@@ -1,14 +1,14 @@
 use crate::mapper::map_db_err;
 use async_trait::async_trait;
-use domain::models::{
-    PersistenceError, PersistenceType, PublicEndpoint, WebhookRequest, WebhookRequestPreview,
-};
 use domain::ports::PersistencePort;
 use log::info;
 use migration::{Migrator, MigratorTrait};
 use sea_orm::prelude::Uuid;
 use sea_orm::sqlx::Error;
 use sea_orm::{ActiveValue, ColumnTrait, ConnectOptions, Database, DatabaseConnection, DbErr, EntityTrait, QueryFilter, QueryOrder, RuntimeErr};
+use domain::model::endpoint::{EndpointReadDto};
+use domain::model::persistence::{PersistenceError, PersistenceType};
+use domain::model::webhook::{WebhookRequest, WebhookRequestPreview};
 
 mod entity;
 mod mapper;
@@ -44,7 +44,7 @@ impl SeaPersistence {
 
 #[async_trait]
 impl PersistencePort for SeaPersistence {
-    async fn get_endpoint(&self, url: Uuid) -> Result<Option<PublicEndpoint>, PersistenceError> {
+    async fn get_endpoint(&self, url: Uuid) -> Result<Option<EndpointReadDto>, PersistenceError> {
         let mod_opt = entity::public_endpoint::Entity::find()
             .filter(entity::public_endpoint::Column::Url.eq(url))
             .one(&self.pool)
@@ -53,7 +53,7 @@ impl PersistencePort for SeaPersistence {
         Ok(mod_opt.map(Into::into))
     }
 
-    async fn save_endpoint(&self, url: Uuid) -> Result<PublicEndpoint, PersistenceError> {
+    async fn save_endpoint(&self, url: String) -> Result<EndpointReadDto, PersistenceError> {
         let new_endpoint = entity::public_endpoint::ActiveModel {
             id: Default::default(),
             url: ActiveValue::Set(url),
@@ -76,7 +76,7 @@ impl PersistencePort for SeaPersistence {
         }
     }
 
-    async fn get_endpoints(&self) -> Vec<PublicEndpoint> {
+    async fn get_endpoints(&self) -> Vec<EndpointReadDto> {
         entity::public_endpoint::Entity::find()
             .all(&self.pool)
             .await
@@ -88,7 +88,7 @@ impl PersistencePort for SeaPersistence {
 
     async fn save_request(
         &self,
-        endpoint: PublicEndpoint,
+        endpoint: EndpointReadDto,
         request: WebhookRequest,
     ) -> Result<i32, PersistenceError> {
         let req = entity::public_request::ActiveModel {

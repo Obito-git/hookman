@@ -10,7 +10,7 @@ use actix_web::{
     App, HttpRequest, HttpResponse, HttpServer, Responder, Result, error, get, post, web,
 };
 use derive_more::{Display, Error};
-use domain::models::PersistenceError;
+use domain::model::persistence::PersistenceError;
 use domain::services::ApiServiceInterface;
 use log::error;
 use std::thread;
@@ -74,7 +74,7 @@ async fn create_endpoint(
 ) -> Result<impl Responder> {
     let service = data.service.lock().await;
     let endpoint = service
-        .create_endpoint(endpoint_create_dto.into_inner().endpoint)
+        .create_endpoint(endpoint_create_dto.into_inner().url)
         .await
         .map(EndpointResponseDto::from)
         .map_err(ApiError::from)?;
@@ -111,8 +111,8 @@ struct AppState {
     pub service: Mutex<Box<dyn ApiServiceInterface>>,
 }
 
-pub fn start_server(uri: &str, service: Box<dyn ApiServiceInterface>) -> thread::JoinHandle<()> {
-    let addr = uri.to_string();
+pub fn start_server(url: &str, service: Box<dyn ApiServiceInterface>) -> thread::JoinHandle<()> {
+    let addr = url.to_string();
     thread::spawn(move || {
         let sys = actix_web::rt::System::new();
         sys.block_on(async move {

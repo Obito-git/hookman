@@ -19,7 +19,9 @@ impl MigrationTrait for Migration {
                             .auto_increment()
                             .primary_key(),
                     )
-                    .col(ColumnDef::new(PublicEndpoint::Url).uuid().not_null().unique_key())
+                    // todo: unique by userId + url for private endpoints
+                    // todo: uuid for public endpoints bcs no users and no custom urls
+                    .col(ColumnDef::new(PublicEndpoint::Url).string().not_null().unique_key())
                     .col(
                         ColumnDef::new(PublicEndpoint::CreatedAt)
                             .timestamp_with_time_zone()
