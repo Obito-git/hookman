@@ -25,7 +25,7 @@
 
     async function getRequests() {
         if (selectedEndpointId) {
-            return invoke<WebhookRequestPreview[]>('get_requests_by_endpoint_id', {selectedEndpointId})
+            return invoke<WebhookRequestPreview[]>('get_requests_by_endpoint_id', {endpointId: selectedEndpointId})
                 .catch((error) => {
                     console.error("Error fetching data:", error);
                     return [];
