@@ -6,11 +6,11 @@ use actix_web::{
     post, put, trace,
 };
 use chrono::Utc;
-use domain::model::webhook::{HttpMethod, WebhookRequest};
+use domain::model::webhook::{HttpMethodModel, WebhookRequestModel};
 use itertools::Itertools;
 use serde_json::json;
 use tracing::debug;
-use domain::model::endpoint::EndpointReadDto;
+use domain::model::endpoint::EndpointReadModel;
 
 /// can have duplicate header name, saves all
 /// peer addr can be None only in unit tests
@@ -19,8 +19,8 @@ use domain::model::endpoint::EndpointReadDto;
 pub fn http_to_webhook_request(
     req: HttpRequest,
     body: String,
-    http_method: HttpMethod,
-) -> Result<WebhookRequest, WebhookError> {
+    http_method: HttpMethodModel,
+) -> Result<WebhookRequestModel, WebhookError> {
     debug!("New request received");
     let host = option_or_webhook_err!(req.peer_addr());
 
@@ -51,13 +51,13 @@ pub fn http_to_webhook_request(
         .map(|(k, v)| json!({ "key": k, "value": v }))
         .collect();
 
-    Ok(WebhookRequest {
+    Ok(WebhookRequestModel {
         host: host.ip().to_string(),
         headers: serde_json::Value::Array(json_headers),
         body: (!body.is_empty()).then_some(body),
         query_params: (!params.is_empty()).then_some(serde_json::Value::Array(params)),
         timestamp: Utc::now(),
-        http_method,
+        method: http_method,
     })
 }
 
@@ -65,9 +65,9 @@ async fn handle_webhook(
     http_request: HttpRequest,
     data: Data<AppState>,
     body: String,
-    http_method: HttpMethod,
+    http_method: HttpMethodModel,
 ) -> Result<impl Responder, WebhookError> {
-    let endpoint = option_or_webhook_err!(http_request.extensions_mut().remove::<EndpointReadDto>());
+    let endpoint = option_or_webhook_err!(http_request.extensions_mut().remove::<EndpointReadModel>());
     let mut lock = data.service.lock().await;
     lock.process_request(
         endpoint,
@@ -83,7 +83,7 @@ async fn handle_get(
     data: Data<AppState>,
     body: String,
 ) -> Result<impl Responder, WebhookError> {
-    handle_webhook(req, data, body, HttpMethod::Get).await
+    handle_webhook(req, data, body, HttpMethodModel::Get).await
 }
 
 #[post("/{path}")]
@@ -92,7 +92,7 @@ async fn handle_post(
     data: Data<AppState>,
     body: String,
 ) -> Result<impl Responder, WebhookError> {
-    handle_webhook(req, data, body, HttpMethod::Post).await
+    handle_webhook(req, data, body, HttpMethodModel::Post).await
 }
 
 #[delete("/{path}")]
@@ -101,7 +101,7 @@ async fn handle_delete(
     data: Data<AppState>,
     body: String,
 ) -> Result<impl Responder, WebhookError> {
-    handle_webhook(req, data, body, HttpMethod::Delete).await
+    handle_webhook(req, data, body, HttpMethodModel::Delete).await
 }
 
 #[put("/{path}")]
@@ -110,7 +110,7 @@ async fn handle_put(
     data: Data<AppState>,
     body: String,
 ) -> Result<impl Responder, WebhookError> {
-    handle_webhook(req, data, body, HttpMethod::Put).await
+    handle_webhook(req, data, body, HttpMethodModel::Put).await
 }
 
 #[patch("/{path}")]
@@ -119,7 +119,7 @@ async fn handle_patch(
     data: Data<AppState>,
     body: String,
 ) -> Result<impl Responder, WebhookError> {
-    handle_webhook(req, data, body, HttpMethod::Patch).await
+    handle_webhook(req, data, body, HttpMethodModel::Patch).await
 }
 
 #[head("/{path}")]
@@ -128,7 +128,7 @@ async fn handle_head(
     data: Data<AppState>,
     body: String,
 ) -> Result<impl Responder, WebhookError> {
-    handle_webhook(req, data, body, HttpMethod::Head).await
+    handle_webhook(req, data, body, HttpMethodModel::Head).await
 }
 
 #[connect("/{path}")]
@@ -137,7 +137,7 @@ async fn handle_connect(
     data: Data<AppState>,
     body: String,
 ) -> Result<impl Responder, WebhookError> {
-    handle_webhook(req, data, body, HttpMethod::Connect).await
+    handle_webhook(req, data, body, HttpMethodModel::Connect).await
 }
 
 #[options("/{path}")]
@@ -146,7 +146,7 @@ async fn handle_options(
     data: Data<AppState>,
     body: String,
 ) -> Result<impl Responder, WebhookError> {
-    handle_webhook(req, data, body, HttpMethod::Options).await
+    handle_webhook(req, data, body, HttpMethodModel::Options).await
 }
 
 #[trace("/{path}")]
@@ -155,5 +155,5 @@ async fn handle_trace(
     data: Data<AppState>,
     body: String,
 ) -> Result<impl Responder, WebhookError> {
-    handle_webhook(req, data, body, HttpMethod::Trace).await
+    handle_webhook(req, data, body, HttpMethodModel::Trace).await
 }

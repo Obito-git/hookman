@@ -4,7 +4,7 @@ use std::fmt::{Display, Formatter};
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "UPPERCASE")]
-pub enum HttpMethod {
+pub enum HttpMethodModel {
     Get,
     Post,
     Put,
@@ -16,36 +16,39 @@ pub enum HttpMethod {
     Trace,
 }
 
-impl Display for HttpMethod {
+impl Display for HttpMethodModel {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            HttpMethod::Get => write!(f, "GET"),
-            HttpMethod::Post => write!(f, "POST"),
-            HttpMethod::Put => write!(f, "PUT"),
-            HttpMethod::Delete => write!(f, "DELETE"),
-            HttpMethod::Patch => write!(f, "PATCH"),
-            HttpMethod::Head => write!(f, "HEAD"),
-            HttpMethod::Connect => write!(f, "CONNECT"),
-            HttpMethod::Options => write!(f, "OPTIONS"),
-            HttpMethod::Trace => write!(f, "TRACE"),
+            HttpMethodModel::Get => write!(f, "GET"),
+            HttpMethodModel::Post => write!(f, "POST"),
+            HttpMethodModel::Put => write!(f, "PUT"),
+            HttpMethodModel::Delete => write!(f, "DELETE"),
+            HttpMethodModel::Patch => write!(f, "PATCH"),
+            HttpMethodModel::Head => write!(f, "HEAD"),
+            HttpMethodModel::Connect => write!(f, "CONNECT"),
+            HttpMethodModel::Options => write!(f, "OPTIONS"),
+            HttpMethodModel::Trace => write!(f, "TRACE"),
         }
     }
 }
 
 #[derive(Debug, Clone, Serialize)]
-pub struct WebhookRequest {
+#[serde(rename_all = "camelCase")]
+pub struct WebhookRequestModel {
     pub headers: serde_json::Value,
     pub query_params: Option<serde_json::Value>,
     pub body: Option<String>,
     pub timestamp: DateTime<Utc>,
     pub host: String,
-    pub http_method: HttpMethod,
+    pub method: HttpMethodModel,
 }
 
 #[derive(Debug, Clone, Serialize)]
-pub struct WebhookRequestPreview {
+#[serde(rename_all = "camelCase")]
+pub struct WebhookRequestPreviewModel {
     pub timestamp: DateTime<Utc>,
     pub host: String,
-    pub http_method: HttpMethod,
+    pub method: HttpMethodModel,
     pub id: i32,
+    pub endpoint_id: i32,
 }

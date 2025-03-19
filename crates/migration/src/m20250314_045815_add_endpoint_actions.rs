@@ -27,8 +27,7 @@ impl MigrationTrait for Migration {
                     )
                     .col(
                         ColumnDef::new(EndpointActionSettings::ActionType)
-                            .custom(EndpointAction::Enum)
-                            .not_null(),
+                            .custom(EndpointAction::Enum),
                     )
                     .col(
                         ColumnDef::new(EndpointActionSettings::Payload)

@@ -1,14 +1,14 @@
-use domain::model::webhook::WebhookRequestPreview;
+use domain::model::webhook::WebhookRequestPreviewModel;
 use serde::{Deserialize, Serialize};
-use domain::model::endpoint::EndpointReadDto;
+use domain::model::endpoint::{EndpointReadModel, EndpointReadPreviewModel};
 
 #[derive(Deserialize)]
 pub struct EndpointCreateDto {
     pub url: String,
 }
 
-impl From<EndpointReadDto> for EndpointResponseDto {
-    fn from(value: EndpointReadDto) -> Self {
+impl From<EndpointReadModel> for EndpointResponseDto {
+    fn from(value: EndpointReadModel) -> Self {
         Self {
             url: value.url,
         }
@@ -29,12 +29,12 @@ pub struct Metadata {
 #[derive(Serialize)]
 pub struct ReadAllEndpointsResponseDto {
     metadata: Metadata,
-    endpoints: Vec<EndpointReadDto>,
+    endpoints: Vec<EndpointReadPreviewModel>,
 }
 
 //TODO: implement the complete one
 impl ReadAllEndpointsResponseDto {
-    pub fn new(requests: Vec<EndpointReadDto>) -> Self {
+    pub fn new(requests: Vec<EndpointReadPreviewModel>) -> Self {
         Self {
             metadata: Metadata {
                 count: requests.len(),
@@ -48,12 +48,12 @@ impl ReadAllEndpointsResponseDto {
 #[derive(Serialize)]
 pub struct ReadAllRequestsResponseDto {
     metadata: Metadata,
-    requests: Vec<WebhookRequestPreview>,
+    requests: Vec<WebhookRequestPreviewModel>,
 }
 
 //TODO: implement the complete one
 impl ReadAllRequestsResponseDto {
-    pub fn new(requests: Vec<WebhookRequestPreview>) -> Self {
+    pub fn new(requests: Vec<WebhookRequestPreviewModel>) -> Self {
         Self {
             metadata: Metadata {
                 count: requests.len(),

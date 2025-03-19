@@ -1,10 +1,10 @@
 #[derive(Debug)]
-pub enum PersistenceError {
+pub enum PersistenceErrorModel {
     ResourceAlreadyExists,
     UnhandledError,
 }
 
-pub struct PostgresConfiguration {
+pub struct PostgresConfigurationModel {
     pub user: String,
     pub password: String,
     pub host: String,
@@ -12,12 +12,12 @@ pub struct PostgresConfiguration {
     pub database: String,
 }
 
-pub struct SQLiteConfiguration {
+pub struct SQLiteConfigurationModel {
     pub database_name: String,
     pub folder_path: String,
 }
 
-impl SQLiteConfiguration {
+impl SQLiteConfigurationModel {
     pub fn to_connection_string(&self) -> String {
         format!(
             "sqlite://{}/{}.sqlite?mode=rwc",
@@ -26,7 +26,7 @@ impl SQLiteConfiguration {
     }
 }
 
-impl PostgresConfiguration {
+impl PostgresConfigurationModel {
     pub fn to_connection_string(&self) -> String {
         format!(
             "postgres://{}:{}@{}:{}/{}",
@@ -35,8 +35,8 @@ impl PostgresConfiguration {
     }
 }
 
-pub enum PersistenceType {
+pub enum PersistenceTypeModel {
     InMemory,
-    SQLiteFile(SQLiteConfiguration),
-    Postgres(PostgresConfiguration),
+    SQLiteFile(SQLiteConfigurationModel),
+    Postgres(PostgresConfigurationModel),
 }

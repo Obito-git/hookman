@@ -1,27 +1,36 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
-pub struct EndpointReadDto {
+pub struct EndpointReadPreviewModel {
     pub id: i32,
     pub url: String,
-    pub action: Option<EndpointAction>,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
-pub struct EndpointCreateDto {
+pub struct EndpointReadModel {
+    pub id: i32,
     pub url: String,
-    pub action: Option<EndpointAction>,
+    pub action: Option<EndpointActionModel>,
 }
 
-#[derive(Debug, Clone, Serialize, PartialEq)]
-pub enum EndpointAction {
-    CustomResponse(CustomResponseSettings),
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct EndpointCreateModel {
+    pub url: String,
+    pub action: Option<EndpointActionModel>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub enum EndpointActionModel {
+    CustomResponse(CustomResponseModel),
     None,
 }
 
-#[derive(Debug, Clone, Serialize, PartialEq)]
-pub struct CustomResponseSettings {
-    pub status_code: u16,
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct CustomResponseModel {
+    pub status_code: i16,
     pub body: String,
-    pub headers: serde_json::Value,
+    pub headers: HashMap<String, String>,
 }

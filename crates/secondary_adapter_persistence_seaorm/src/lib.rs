@@ -1,13 +1,18 @@
 use crate::mapper::map_db_err;
 use async_trait::async_trait;
-use domain::ports::PersistencePort;
+use domain::model::endpoint::{
+    CustomResponseModel, EndpointActionModel, EndpointCreateModel, EndpointReadModel,
+    EndpointReadPreviewModel,
+};
+use domain::model::persistence::{PersistenceErrorModel, PersistenceTypeModel};
+use domain::model::webhook::{WebhookRequestModel, WebhookRequestPreviewModel};
+use domain::ports::persistence::PersistencePort;
 use log::info;
 use migration::{Migrator, MigratorTrait};
-use sea_orm::sqlx::Error;
-use sea_orm::{ActiveValue, ColumnTrait, ConnectOptions, Database, DatabaseConnection, DbErr, EntityTrait, QueryFilter, QueryOrder, RuntimeErr};
-use domain::model::endpoint::{EndpointReadDto};
-use domain::model::persistence::{PersistenceError, PersistenceType};
-use domain::model::webhook::{WebhookRequest, WebhookRequestPreview};
+use sea_orm::{
+    ActiveValue, ColumnTrait, ConnectOptions, Database, DatabaseConnection, DbErr, EntityTrait,
+    QueryFilter, QueryOrder, TransactionTrait,
+};
 
 mod entity;
 mod mapper;
@@ -20,11 +25,11 @@ pub struct SeaPersistence {
 }
 
 impl SeaPersistence {
-    pub async fn new(persistence_type: PersistenceType) -> impl PersistencePort {
+    pub async fn new(persistence_type: PersistenceTypeModel) -> impl PersistencePort {
         let connection_url = match persistence_type {
-            PersistenceType::InMemory => IN_MEMORY_SQLITE_URL.to_string(),
-            PersistenceType::Postgres(config) => config.to_connection_string(),
-            PersistenceType::SQLiteFile(config) => config.to_connection_string(),
+            PersistenceTypeModel::InMemory => IN_MEMORY_SQLITE_URL.to_string(),
+            PersistenceTypeModel::Postgres(config) => config.to_connection_string(),
+            PersistenceTypeModel::SQLiteFile(config) => config.to_connection_string(),
         };
 
         info!("Connection URL: {connection_url}");
@@ -43,24 +48,115 @@ impl SeaPersistence {
 
 #[async_trait]
 impl PersistencePort for SeaPersistence {
-    async fn get_endpoint(&self, url: String) -> Result<Option<EndpointReadDto>, PersistenceError> {
+    async fn get_endpoint(
+        &self,
+        url: String,
+    ) -> Result<Option<EndpointReadModel>, PersistenceErrorModel> {
         let mod_opt = entity::public_endpoint::Entity::find()
             .filter(entity::public_endpoint::Column::Url.eq(url))
             .one(&self.pool)
             .await
             .map_err(|e| map_db_err(e))?;
-        Ok(mod_opt.map(Into::into))
+        if let Some(endpoint) = mod_opt {
+            let action = entity::endpoint_action_settings::Entity::find()
+                .filter(entity::endpoint_action_settings::Column::EndpointId.eq(endpoint.id))
+                .one(&self.pool)
+                .await
+                .map_err(|e| map_db_err(e))
+                .map(|action_opt| {
+                    action_opt.map(|action| {
+                        let payload = action.payload.unwrap();
+                        let settings: CustomResponseModel =
+                            serde_json::from_value(payload).unwrap();
+                        EndpointActionModel::CustomResponse(settings)
+                    })
+                })?;
+            Ok(Some(EndpointReadModel {
+                id: endpoint.id,
+                url: endpoint.url,
+                action,
+            }))
+        } else {
+            Ok(mod_opt.map(|e| EndpointReadModel {
+                id: e.id,
+                url: e.url,
+                action: None,
+            }))
+        }
     }
 
-    async fn save_endpoint(&self, url: String) -> Result<EndpointReadDto, PersistenceError> {
-        let new_endpoint = entity::public_endpoint::ActiveModel {
-            id: Default::default(),
-            url: ActiveValue::Set(url),
-            created_at: Default::default(),
-        };
-        let res = entity::public_endpoint::Entity::insert(new_endpoint)
-            .exec_with_returning(&self.pool)
-            .await;
+    async fn save_endpoint(
+        &self,
+        endpoint: EndpointCreateModel,
+    ) -> Result<EndpointReadModel, PersistenceErrorModel> {
+        self.pool
+            .transaction::<_, EndpointReadModel, DbErr>(|txn| {
+                Box::pin(async move {
+                    let endpoint_model = entity::public_endpoint::ActiveModel {
+                        id: Default::default(),
+                        url: ActiveValue::Set(endpoint.url),
+                        created_at: Default::default(),
+                    };
+                    let created_endpoint = entity::public_endpoint::Entity::insert(endpoint_model)
+                        .exec_with_returning(txn)
+                        .await?;
+
+                    // TODO: put in separate method
+                    if endpoint.action.is_none() {
+                        return Ok(EndpointReadModel {
+                            id: created_endpoint.id,
+                            url: created_endpoint.url,
+                            action: None,
+                        });
+                    }
+                    let action_type = endpoint
+                        .action
+                        .as_ref()
+                        .map(|v| match v {
+                            EndpointActionModel::CustomResponse(_) => {
+                                Some(entity::sea_orm_active_enums::EndpointAction::CustomResponse)
+                            }
+                            EndpointActionModel::None => None,
+                        })
+                        .flatten();
+                    let payload = endpoint.action.map(|v| match v {
+                        EndpointActionModel::CustomResponse(settings) => {
+                            serde_json::to_value(settings).unwrap()
+                        }
+                        EndpointActionModel::None => serde_json::Value::Null,
+                    });
+                    let action_model = entity::endpoint_action_settings::ActiveModel {
+                        id: Default::default(),
+                        endpoint_id: ActiveValue::Set(created_endpoint.id),
+                        action_type: ActiveValue::Set(action_type),
+                        payload: ActiveValue::Set(payload),
+                    };
+                    let created_actions =
+                        entity::endpoint_action_settings::Entity::insert(action_model)
+                            .exec_with_returning(txn)
+                            .await?;
+                    Ok(EndpointReadModel {
+                        id: created_endpoint.id,
+                        url: created_endpoint.url,
+                        action: if let Some(action) = created_actions.action_type {
+                            match action {
+                                entity::sea_orm_active_enums::EndpointAction::CustomResponse => {
+                                    let payload = created_actions.payload.unwrap();
+                                    let settings: CustomResponseModel =
+                                        serde_json::from_value(payload).unwrap();
+                                    Some(EndpointActionModel::CustomResponse(settings))
+                                }
+                            }
+                        } else {
+                            None
+                        },
+                    })
+                })
+            })
+            .await
+            .map_err(|_| PersistenceErrorModel::UnhandledError)
+
+        /*
         println!("{res:?}");
         match res {
             Ok(model) => Ok(model.into()),
@@ -73,9 +169,10 @@ impl PersistencePort for SeaPersistence {
                 Err(PersistenceError::UnhandledError)
             }
         }
+         */
     }
 
-    async fn get_endpoints(&self) -> Vec<EndpointReadDto> {
+    async fn get_endpoints(&self) -> Vec<EndpointReadPreviewModel> {
         entity::public_endpoint::Entity::find()
             .all(&self.pool)
             .await
@@ -87,15 +184,15 @@ impl PersistencePort for SeaPersistence {
 
     async fn save_request(
         &self,
-        endpoint: EndpointReadDto,
-        request: WebhookRequest,
-    ) -> Result<i32, PersistenceError> {
+        endpoint: EndpointReadModel,
+        request: WebhookRequestModel,
+    ) -> Result<i32, PersistenceErrorModel> {
         let req = entity::public_request::ActiveModel {
             id: Default::default(),
             endpoint_id: ActiveValue::Set(endpoint.id),
             body: ActiveValue::Set(request.body),
             headers: ActiveValue::Set(request.headers),
-            http_method: ActiveValue::Set(request.http_method.into()),
+            http_method: ActiveValue::Set(request.method.into()),
             timestamp: ActiveValue::Set(request.timestamp.naive_utc()),
             host: ActiveValue::Set(request.host),
             query_params: ActiveValue::Set(request.query_params),
@@ -107,7 +204,7 @@ impl PersistencePort for SeaPersistence {
             .map_err(|e| map_db_err(e))
     }
 
-    async fn get_requests_by_endpoint(&self, endpoint_id: i32) -> Vec<WebhookRequestPreview> {
+    async fn get_requests_by_endpoint(&self, endpoint_id: i32) -> Vec<WebhookRequestPreviewModel> {
         entity::public_request::Entity::find()
             .filter(entity::public_request::Column::EndpointId.eq(endpoint_id))
             .order_by_desc(entity::public_request::Column::Timestamp)
@@ -119,7 +216,7 @@ impl PersistencePort for SeaPersistence {
             .collect()
     }
 
-    async fn get_request_by_id(&self, id: i32) -> Result<Option<WebhookRequest>, PersistenceError> {
+    async fn get_request_by_id(&self, id: i32) -> Result<Option<WebhookRequestModel>, PersistenceErrorModel> {
         let model_opt = entity::public_request::Entity::find()
             .filter(entity::public_request::Column::Id.eq(id))
             .one(&self.pool)
@@ -128,7 +225,7 @@ impl PersistencePort for SeaPersistence {
         Ok(model_opt.map(Into::into))
     }
 
-    async fn get_requests(&self) -> Vec<WebhookRequest> {
+    async fn get_requests(&self) -> Vec<WebhookRequestModel> {
         todo!()
     }
 }

@@ -1,24 +1,36 @@
 <script lang="ts">
-    import RequestSideBar from "$lib/RequestSideBar.svelte";
-    import EndpointTopBar from "$lib/EndpointTopBar.svelte";
     import {onDestroy, onMount} from "svelte";
     import {invoke} from "@tauri-apps/api/core";
     import {listen, type UnlistenFn} from "@tauri-apps/api/event";
     import RequestDetails from "$lib/RequestDetails.svelte";
     import type {Endpoint} from "$types/endpoints";
-    import type {TauriEvent} from "$types/events";
-    import type {WebhookRequestPreview} from "$types/requests";
+    import type {WebhookRequest, WebhookRequestPreview} from "$types/requests";
+    import {Button, Indicator, TabItem, Tabs} from "flowbite-svelte";
+    import AddIcon from 'virtual:icons/mingcute/classify-add-2-line';
+    import {type EndpointReadDto, type NotifyMessage, NotifyMessageEvent} from "$types/events";
+    import EndpointAddModal from "$lib/EndpointAddModal.svelte";
+    import {SvelteMap} from "svelte/reactivity";
 
+    interface EndpointTabDetails {
+        url: string;
+        unreadCount: number;
+    }
 
-    let endpoints: Endpoint[] = $state([]);
+    let endpoints: SvelteMap<string, EndpointTabDetails> = new SvelteMap();
+
     let selectedEndpointId: string | undefined = $state(undefined);
     let selectedRequestId: string | undefined = $state(undefined);
+    const requestCache: { [id: string]: WebhookRequest } = {};
     let requests: WebhookRequestPreview[] = $state([]);
+    let showAddEndpointModal = $state(false)
 
     $effect(() => {
         if (selectedEndpointId) {
             (async () => {
                 requests = await getRequests();
+                if (requests.length > 0) {
+                    selectedRequestId = requests[0].id; // TODO: Handle empty
+                }
             })();
         }
     });
@@ -37,16 +49,55 @@
     let unlisten: UnlistenFn;
 
     onMount(async () => {
-        endpoints = await invoke("get_endpoints", {endpoints});
-        selectedEndpointId = endpoints[0].id; // TODO: Handle empty
-        unlisten = await listen<TauriEvent>('backend-message', (event) => {
-            const newRequest: WebhookRequestPreview = {
-                id: event.payload.id,
-                http_method: event.payload.method,
-                host: event.payload.host,
-                timestamp: event.payload.date,
+        const endpoints_list: Endpoint[] = await invoke("get_endpoints");
+        if (endpoints_list.length !== 0) {
+            selectedEndpointId = endpoints_list[0].id;
+            endpoints_list.forEach((endpoint => {
+                endpoints.set(endpoint.id, {
+                    url: endpoint.url,
+                    unreadCount: 0
+                });
+            }));
+        }
+        unlisten = await listen<NotifyMessage>('backend-message', (event) => {
+            console.log('Received event:', event.payload.event);
+            switch (event.payload.event) {
+                case NotifyMessageEvent.EndpointAdded:
+                    console.log('Endpoint added:', event.payload.data);
+                    const endpointData: EndpointReadDto = event.payload.data;
+                    const endpoint: Endpoint = {
+                        id: endpointData.id,
+                        url: endpointData.url,
+                    };
+                    if (!selectedEndpointId) {
+                        selectedEndpointId = endpoint.id;
+                    }
+                    endpoints.set(endpoint.id, {
+                        url: endpoint.url,
+                        unreadCount: 0
+                    });
+                    break;
+                case NotifyMessageEvent.EndpointRemoved:
+                    console.log('Endpoint removed:', event.payload.data);
+                    break;
+                case NotifyMessageEvent.RequestAdded:
+                    const requestData: WebhookRequestPreview = event.payload.data;
+                    if (requestData.endpointId === selectedEndpointId) {
+                        requests.unshift(requestData);
+                    } else {
+                        // Get the current endpoint data
+                        const endpointData = endpoints.get(requestData.endpointId);
+                        if (endpointData) {
+                            endpoints.set(requestData.endpointId, {
+                                ...endpointData,
+                                unreadCount: endpointData.unreadCount + 1,
+                            });
+                        }
+                    }
+                    break;
+                default:
+                    console.error('Unknown event');
             }
-            requests.unshift(newRequest);
         });
     });
 
@@ -65,27 +116,60 @@
             selectedEndpointId = id;
             requests = [];
             selectedRequestId = undefined;
+            const endpointData = endpoints.get(id);
+            if (endpointData) {
+                endpoints.set(id, {
+                    ...endpointData,
+                    unreadCount: 0,
+                });
+            }
         }
     }
 </script>
 
 <main class="container mx-auto min-h-screen flex flex-col">
-    <!-- Top bar -->
-    <div class="mb-4">
-        <EndpointTopBar onSelectedEndpointChange={handleEndpointClick} {endpoints} {selectedEndpointId}/>
-    </div>
+    <Tabs>
+        <!-- Add New Endpoint Button -->
+        <button
+                onclick={() => showAddEndpointModal = true}
+                class="p-2 hover:bg-gray-200 rounded-full"
+        >
+            <AddIcon class="w-8 h-8"/>
+        </button>
+        {#each endpoints as endpoint}
+            <!-- Endpoint tab -->
+            <TabItem open={selectedEndpointId === endpoint[0]} on:click={() => handleEndpointClick(endpoint[0])}>
+                <div slot="title" class="relative pr-4">
+                    {endpoint[1].url}
+                    {#if endpoint[1].unreadCount > 0}
+                        <Indicator color="red" border size="xl" placement="top-right">
+                            <span class="text-white text-xs font-bold">{endpoint[1].unreadCount}</span>
+                        </Indicator>
+                    {/if}
+                </div>
+                <div class="flex h-screen">
+                    <div class="w-1/4 border-r">
+                        <!-- Request tab -->
+                        <Tabs tabStyle="underline" class="flex flex-col">
+                            {#each requests as request}
+                                <TabItem open={selectedRequestId === request.id}
+                                         on:click={() => handleRequestClick(request.id)}>
+                                    <div slot="title" class="flex items-center gap-2">
+                                        {request.id}: {request.method}: {request.host}, {request.timestamp}
+                                    </div>
+                                </TabItem>
+                            {/each}
+                        </Tabs>
+                    </div>
 
-    <!-- Split content: sidebar and details -->
-    <div class="flex flex-1">
-        <aside class="w-1/4 p-4 border-r border-gray-300">
-            <RequestSideBar onSelectedRequestChange={handleRequestClick} {requests} {selectedRequestId}/>
-        </aside>
-
-        <section class="w-3/4 p-4">
-            <div class="border-t-4">
-                <RequestDetails {selectedRequestId}/>
-            </div>
-        </section>
-    </div>
+                    <!-- Request details -->
+                    <div class="flex-1 p-4">
+                        <RequestDetails {selectedRequestId} {requestCache}/>
+                    </div>
+                </div>
+            </TabItem>
+        {/each}
+    </Tabs>
+    <EndpointAddModal bind:showAddEndpointModal/>
 </main>
 

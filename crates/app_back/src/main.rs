@@ -2,7 +2,8 @@ mod api;
 
 use api::arg_config::AppConfig;
 use clap::Parser;
-use domain::services::{ApiService, WebhookService};
+use domain::facade::api_service::ApiService;
+use domain::facade::webhook_service::WebhookService;
 use secondary_adapter_notifier_tokio_channel::TokioChannelNotifier;
 use secondary_adapter_persistence_seaorm::SeaPersistence;
 use tokio::sync::mpsc;
@@ -18,8 +19,9 @@ async fn main() {
     let persistence_adapter = SeaPersistence::new(config.persistence_type()).await;
     let (tx, _rx) = mpsc::channel(32);
     let notifier_adapter = TokioChannelNotifier::new(tx);
-    let webhook_service = WebhookService::new(persistence_adapter.clone(), notifier_adapter);
-    let api_service = ApiService::new(persistence_adapter);
+    let webhook_service =
+        WebhookService::new(persistence_adapter.clone(), notifier_adapter.clone());
+    let api_service = ApiService::new(persistence_adapter, notifier_adapter.clone());
 
     let webhook_server_join = primary_adapter_webhook::start_server(
         &format!("{}:{}", config.host, config.webhook_port),

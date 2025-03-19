@@ -9,7 +9,7 @@ pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
     pub endpoint_id: i32,
-    pub action_type: EndpointAction,
+    pub action_type: Option<EndpointAction>,
     #[sea_orm(column_type = "JsonBinary", nullable)]
     pub payload: Option<Json>,
 }

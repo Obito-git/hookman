@@ -1,6 +1,6 @@
 use clap::{Parser, Subcommand};
 use std::fmt::{Display, Formatter};
-use domain::model::persistence::{PersistenceType, PostgresConfiguration, SQLiteConfiguration};
+use domain::model::persistence::{PersistenceTypeModel, PostgresConfigurationModel, SQLiteConfigurationModel};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about)]
@@ -77,12 +77,12 @@ pub enum PersistenceTypeCommand {
 }
 
 impl AppConfig {
-    pub fn persistence_type(&self) -> PersistenceType {
+    pub fn persistence_type(&self) -> PersistenceTypeModel {
         match &self.persistence {
             Some(PersistenceTypeCommand::SQLiteFile {
                 database_name,
                 folder_path,
-            }) => PersistenceType::SQLiteFile(SQLiteConfiguration {
+            }) => PersistenceTypeModel::SQLiteFile(SQLiteConfigurationModel {
                 database_name: database_name.clone(),
                 folder_path: folder_path.clone(),
             }),
@@ -92,14 +92,14 @@ impl AppConfig {
                 host,
                 port,
                 database,
-            }) => PersistenceType::Postgres(PostgresConfiguration {
+            }) => PersistenceTypeModel::Postgres(PostgresConfigurationModel {
                 user: user.clone(),
                 password: password.clone(),
                 host: host.clone(),
                 port: *port,
                 database: database.clone(),
             }),
-            _ => PersistenceType::InMemory,
+            _ => PersistenceTypeModel::InMemory,
         }
     }
 }

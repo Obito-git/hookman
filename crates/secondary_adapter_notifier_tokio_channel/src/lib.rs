@@ -1,7 +1,7 @@
 use async_trait::async_trait;
-use tokio::sync::mpsc::Sender;
 use domain::model::NotifyMessage;
-use domain::ports::NotifierPort;
+use domain::ports::notifier::NotifierPort;
+use tokio::sync::mpsc::Sender;
 
 #[derive(Clone)]
 pub struct TokioChannelNotifier {

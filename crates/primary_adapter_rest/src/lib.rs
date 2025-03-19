@@ -10,8 +10,9 @@ use actix_web::{
     App, HttpRequest, HttpResponse, HttpServer, Responder, Result, error, get, post, web,
 };
 use derive_more::{Display, Error};
-use domain::model::persistence::PersistenceError;
-use domain::services::ApiServiceInterface;
+use domain::facade::api_service::ApiServiceInterface;
+use domain::model::endpoint::EndpointCreateModel;
+use domain::model::persistence::PersistenceErrorModel;
 use log::error;
 use std::thread;
 use tokio::sync::Mutex;
@@ -46,11 +47,11 @@ impl error::ResponseError for ApiError {
     }
 }
 
-impl From<PersistenceError> for ApiError {
-    fn from(value: PersistenceError) -> Self {
+impl From<PersistenceErrorModel> for ApiError {
+    fn from(value: PersistenceErrorModel) -> Self {
         match value {
-            PersistenceError::ResourceAlreadyExists => ApiError::AlreadyExists,
-            PersistenceError::UnhandledError => ApiError::InternalServerError,
+            PersistenceErrorModel::ResourceAlreadyExists => ApiError::AlreadyExists,
+            PersistenceErrorModel::UnhandledError => ApiError::InternalServerError,
         }
     }
 }
@@ -73,7 +74,11 @@ async fn create_endpoint(
 ) -> Result<impl Responder> {
     let service = data.service.lock().await;
     let endpoint = service
-        .create_endpoint(endpoint_create_dto.into_inner().url)
+        // TODO: proper mapping
+        .create_endpoint(EndpointCreateModel {
+            url: endpoint_create_dto.into_inner().url,
+            action: None,
+        })
         .await
         .map(EndpointResponseDto::from)
         .map_err(ApiError::from)?;

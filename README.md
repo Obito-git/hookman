@@ -135,6 +135,10 @@ https://flowbite-svelte.com/docs/components/modal
 example:
 https://github.com/PurelyAnecdotal/gradevue/tree/dc485a5a89070ad17de79e9a8c62bf162e71d81e
 
+### Form validation
+https://felte.dev/docs/svelte/getting-started
+https://github.com/colinhacks/zod
+
 ## Sources for future
 
 - How to embed svelte in rust binary https://fdeantoni.medium.com/single-rust-binary-with-vite-svelte-66944f9ac561

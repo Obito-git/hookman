@@ -1,17 +1,18 @@
 export interface WebhookRequest {
     headers: KeyValue[];
-    query_params: KeyValue[];
+    queryParams: KeyValue[];
     body: string;
     timestamp: string;
     host: string;
-    http_method: string;
+    method: string;
 }
 
 export interface WebhookRequestPreview {
-    id: string;
-    http_method: string;
-    host: string;
     timestamp: string;
+    host: string;
+    method: string;
+    endpointId: string;
+    id: string;
 }
 
 export interface KeyValue {

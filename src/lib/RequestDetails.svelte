@@ -2,9 +2,8 @@
     import {invoke} from "@tauri-apps/api/core";
     import type {WebhookRequest} from "$types/requests";
 
-    let {selectedRequestId} = $props();
+    let {selectedRequestId, requestCache = $bindable()} = $props();
 
-    const requestCache: { [id: string]: WebhookRequest } = {};
     let request: WebhookRequest | undefined = $state(undefined);
 
     $effect(() => {
@@ -43,7 +42,7 @@
         <div>Request ID: {selectedRequestId}</div>
         <div>Timestamp: {request.timestamp}</div>
         <div>Host: {request.host}</div>
-        <div>HTTP Method: {request.http_method}</div>
+        <div>HTTP Method: {request.method}</div>
         <div>Headers:</div>
         <ul>
             {#each request.headers as header}
@@ -52,7 +51,7 @@
         </ul>
         <div>Query Params:</div>
         <ul>
-            {#each request.query_params as param}
+            {#each request.queryParams as param}
                 <li>{param.key}: {param.value}</li>
             {/each}
         </ul>

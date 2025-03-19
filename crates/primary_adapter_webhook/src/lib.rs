@@ -8,7 +8,7 @@ use actix_web::dev::{ServiceRequest, ServiceResponse};
 use actix_web::middleware::{Next, from_fn};
 use actix_web::web::Data;
 use actix_web::{App, Error, HttpMessage, HttpServer};
-use domain::services::WebhookServiceInterface;
+use domain::facade::webhook_service::WebhookServiceInterface;
 use std::thread;
 use tokio::sync::Mutex;
 
